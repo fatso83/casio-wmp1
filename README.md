@@ -8,7 +8,7 @@ and OS X (Mac), but the software should also work on Windows platform, as its on
 dependency is on libusb, which has been ported to Windows (libusb32).
 
 For a bit of history and usage, see the old <a
-href="src/README">README</a>
+href="original_documentation/README">README</a>
 
 ## Main contributors
 - Florian Schmidt (development)

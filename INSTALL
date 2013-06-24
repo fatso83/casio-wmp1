@@ -1,0 +1,29 @@
+Compiling and installing wmp_manager in 2013 (and beyond)
+----------------------------------------------------------
+What you need:
+  - A C++ compiler (like GCC)
+  - make
+  - libusb-0.1 (see below)
+
+The first two comes with most Linux distros, and if you are running Mac,
+then you can easily get hold of them by installing the package "Command
+Line Tools", available from <a
+href="https://developer.apple.com/downloads/index.action?=Command%20Line%20Tools%20%28OS%20X%20Mountain%20Lion%29">the Developer pages at Apple</a>.
+
+This program was made using a library called libusb. Unfortunately the
+version it was made with, 0.1, is now deprecated and no longer
+compatible with the newer libusb. There is a compatibility layer for
+programs using the old version called libusb-compat, but it would not
+let me upload files. 
+Thankfully, the old version is still available for download! You can get
+it <a
+href="http://sourceforge.net/projects/libusb/files/libusb-0.1%20%28LEGACY%29/0.1.12/">here</a>.
+Unpack it, make, and make install. That's it.
+
+To get the library to compile with modern compilers, you need to disable the
+warnings. This is very easy; just open the file called Makefile, and add
+a hash ("#") at the start of the line that says AM_CFLAGS = -Werror
+$(AM_CFLAGS_EXT). 
+
+Now that the prerequisites are in place, all you need to compile the
+program is to issue <code>make</code>, and you are done.
