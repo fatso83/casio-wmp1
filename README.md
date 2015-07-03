@@ -2,10 +2,11 @@ casio-wmp1
 ==========
 *Software for file management on the classic Casio WMP-1 watch*
 
-This source code enables you to use the classic Casio WMP-1 wrist watch
-on most, if not all, modern platforms. It has only been tested on Linux
-and OS X (Mac), but the software should also work on Windows platform, as its only
-dependency is on libusb, which has been ported to Windows (libusb32).
+This source code _should_ enable you to use the classic Casio WMP-1 wrist watch
+on all modern platforms, as its only dependency is libusb. 
+Unfortunately it only works successfully in Linux at the moment:
+- [Unable to compile libusb32](https://github.com/fatso83/casio-wmp1/issues/2) on Windows. 
+- libusb has a bug in OS X [that aborts transfers](https://github.com/fatso83/casio-wmp1/issues/1)
 
 For a bit of history and usage, see the old <a
 href="original_documentation/README">README</a>
