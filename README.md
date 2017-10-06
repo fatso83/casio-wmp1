@@ -23,7 +23,7 @@ href="https://dl.dropboxusercontent.com/u/514315/binaries/casio_wmp1/wmp1_org_fi
 - Florian Schmidt (development)
 - Carl-Erik (minor bug fixes, research, documentation and code archeology)
 
-##Changelog:
+## Changelog:
 
 ### June 24 2013 Added INSTALL note
 Added a small howto on how to build on current systems (OS X and Linux)
