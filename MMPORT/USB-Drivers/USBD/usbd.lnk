@@ -1,0 +1,8 @@
+usbsegs.obj +
+usbconst.obj +
+usbidc.obj usbirq.obj usbapm.obj +
+usbstrat.obj usbinit.obj usbdata.obj
+usbd.sys
+usbd.map
+..\misc\usbmisc.lib ..\..\dasd\devhelp\dhcalls.lib ..\..\resource\rmcalls\rmcalls.lib
+usbd.def

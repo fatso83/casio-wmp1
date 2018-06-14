@@ -1,0 +1,20 @@
+
+Please note that replacing USBD.SYS *MAY* crash your system OR get yourself
+an instable OS. Before replacing make sure that you made backups of all your
+data, just to be sure. You should also be able to boot OS/2 / eComStation from
+a bootable floppy or cd-rom, just in case you need to reinstate that driver.
+
+Check, if MMPORT / Casio WMP-1 is already working with your CURRENT drivers
+(if they are dated later than january 2003), BEFORE even thinking about trying
+my USBD.SYS. I warned you!
+
+Please note as well that USBCALLS.DLL also shot down my system more than once
+(not my own driver, but you never know, I just fixed one bug!), so make sure
+that you first check to use the latest file (if you got one dated later than
+january 2003), BEFORE even thinking about trying my USBCALLS.DLL. I warned you!
+
+Using my USB4REXX.DLL won't hurt your system and that file is really needed.
+
+USBD.SYS belongs into \OS2\BOOT
+USBCALLS.DLL belongs into \OS2\DLL
+and my own USB4REXX.DLL belongs into \OS2\DLL

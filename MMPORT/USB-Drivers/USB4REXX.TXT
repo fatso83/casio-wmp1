@@ -1,0 +1,17 @@
+Okay, so here you have it. It's not worked out fully, but it's easy to do
+USB communications with (at least the ones I needed on the Casio WMP-1 watch).
+Everything else wasn't done (special transfer modes), but those didn't work
+anyway, because of further bugs in USBCALLS and/or USBD.
+
+Have fun playing with the source. Anyway, you need GLOBREXX.OBJ and GLOBSTR.OBJ
+Both are in the JimiHelp subdirectory. I don't release sources to those, anyway
+they "just" include some string helpers and the other one contains Rexx helper
+functions, that I use in various projects.
+
+All personal header files are in JimiHelp as well, but note that USBCALLS.h got
+modified from USBCALLS package (bug again) and USBTYPE.h is official from IBM.
+I use some personal C defines (ffs global.h, etc.) and w/o them, my code won't
+ work.
+
+Regards
+  M. Kiewitz

@@ -1,0 +1,36 @@
+LIBRARY USB4REXX INITINSTANCE TERMINSTANCE
+DESCRIPTION "@#KIEWITZ:0.90#@USB for Rexx"
+DATA MULTIPLE NONSHARED
+PROTMODE
+
+IMPORTS
+   USBCALLS.UsbQueryNumberDevices
+   USBCALLS.UsbOpen
+   USBCALLS.UsbClose
+   USBCALLS.UsbDeviceSetConfiguration
+   USBCALLS.UsbCtrlMessage
+   USBCALLS.UsbBulkRead
+   USBCALLS.UsbBulkWrite
+
+EXPORTS
+   USBLoadFuncs                  @  1
+   USBDropFuncs                  @  2
+   USBEnumDevices                @ 10
+   USBGetLastError               @ 11
+   USBOpen                       @ 20
+   USBClose                      @ 21
+   USBDeviceGetDescriptor        @ 30
+   USBConfigurationGetDescriptor @ 31
+   USBStringGetDescriptor        @ 32
+   USBDeviceGetConfiguration     @ 33
+   USBDeviceSetConfiguration     @ 34
+   USBControlMessageIn           @ 40
+   USBControlMessageOut          @ 41
+   USBStandardMessageIn          @ 42
+   USBStandardMessageOut         @ 43
+   USBClassMessageIn             @ 44
+   USBClassMessageOut            @ 45
+   USBVendorMessageIn            @ 46
+   USBVendorMessageOut           @ 47
+   USBBulkRead                   @ 50
+   USBBulkWrite                  @ 51

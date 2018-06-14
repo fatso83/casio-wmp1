@@ -1,0 +1,104 @@
+USB4REXX (for OS/2):
+=====================
+First you need to load in USB4REXX by using:
+
+call RxFuncAdd "USBLoadFuncs","Usb4Rexx","USBLoadFuncs"
+call USBLoadFuncs
+
+Afterwards you are able to use the following APIs:
+
+USBGetLastError()
+-----------------
+ - Returns "DONE", if last action succeeded otherwise "ERROR" or a more specific
+    error-code
+
+USBEnumDevices()
+-----------------
+ - returns the total attached devices count
+
+USBOpen(Handle-Variablename, VendorID, DeviceID, EnumDevice, BCDVersion)
+-------------------------------------------------------------------------
+ - EnumDevice contains the index for VendorID/DeviceID, 0 means first device
+ - BCDVersion is an optional parameter
+ - Opens a specific Device, returns "DONE" or "NOTFOUND"
+    on "DONE", the Handle-Variablename will be filled out with the USB Device
+    handle for further usage with the other APIs
+
+USBClose(Handle)
+-----------------
+ - Closes the specified Handle, returns "DONE" on success
+
+USBDeviceGetDescriptor(Handle, LanguageID)
+-------------------------------------------
+ - LanguageID is an optional parameter
+ - Gets the Device descriptor of specified device, returns directly
+    returns NUL-string on error
+
+USBConfigurationGetDescriptor(Handle, ConfigurationNo, LanguageID)
+-------------------------------------------------------------------
+ - ConfigurationNo is the number of the configuration starting at 1
+ - LanguageID is an optional parameter
+ - Gets the Configuration descriptor of specified device, returns directly
+    returns NUL-string on error
+
+USBStringGetDescriptor(Handle, StringNo, LanguageID)
+-----------------------------------------------------
+ - StringNo is the number of the string starting at 0
+ - LanguageID is an optional parameter
+ - Gets the String descriptor of specified device, returns directly
+    returns NUL-string on error
+
+USBDeviceGetConfiguration(Handle)
+----------------------------------
+ - Gets the current active configuration number, 0 if not configured or NUL-
+    string on error
+
+USBDeviceSetConfiguration(Handle,ConfigNo)
+-------------------------------------------
+ - Sets the active configuration on a device, configuration number starts at 1
+
+USBControlMessageIn(Handle,Type,RequestType,RequestNo,Value,Index,InBufferLength,Timeout)
+-----------------------------------------------------------------------------------------------
+ - You are supposed to use USBStandard/Class/VendorMessageIn
+ - Type is the RequestType (raw, but bit 7)
+ - InBufferLength is the number of bytes to expect to receive
+ - Timeout is an optional parameter
+ - Returns received buffer
+
+USBControlMessageOut(Handle,Type,RequestType,RequestNo,Value,Index,OutBuffer,Timeout)
+--------------------------------------------------------------------------------------
+ - You are supposed to use USBStandard/Class/VendorMessageIn
+ - Type is the RequestType (raw, but bit 7)
+ - OutBuffer is the buffer that wil get sent with the control message
+ - Timeout is an optional parameter
+ - Returns "DONE" on success
+
+USBStandardMessageIn (Handle,Receipent,RequestNo,Value,Index,InBufferLength,Timeout)
+USBClassMessageIn
+USBVendorMessageIn
+-------------------------------------------------------------------------------------
+ - Receipent is 0-Device,1-Interface,2-Endpoint,3-Other
+ - InBufferLength is the number of bytes to expect to receive
+ - Timeout is an optional parameter
+ - Returns received buffer
+
+USBStandardMessageOut (Handle,Receipent,RequestNo,Value,Index,OutBuffer,TimeOut)
+USBClassMessageOut
+USBVendorMessageOut
+---------------------------------------------------------------------------------
+ - Receipent is 0-Device,1-Interface,2-Endpoint,3-Other
+ - OutBuffer is the buffer that will get sent with the control message
+ - Timeout is an optional parameter
+ - Returns "DONE" on success
+
+USBBulkRead (Handle,Interface,EndPoint,Length,TimeOut)
+-------------------------------------------------------
+ - Length is the number of bytes expected (may noth match result buffer)
+ - Timeout is an optional parameter
+ - Returns received buffer (up to Length size)
+
+USBBulkWrite (Handle,Interface,EndPoint,OutBuffer,TimeOut)
+-----------------------------------------------------------
+ - OutBuffer is the string to sent as bulk transfer
+ - Timeout is an optional parameter
+ - Returns "DONE" on success

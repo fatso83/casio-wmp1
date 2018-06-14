@@ -1,0 +1,16 @@
+# consistent line endings
+
+# line endings are normalized to CRLF on _checkin_.
+# this just applies to what git thinks are text files
+*   eol=crlf
+
+# don't fuck with binaries
+*.jpg   -text
+*.exe   -text
+*.sys -text
+*.obj -text
+*.wav -text
+*.dll -text
+*.DLL -text
+*.ico -text
+*.ICO -text

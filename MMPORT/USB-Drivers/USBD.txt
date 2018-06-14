@@ -1,0 +1,18 @@
+This here would be too much, because it was a full replacement for the IBM
+method of enumerating devices. My method IS like Windoze is doing it, so 99.9%
+of all devices should work that way.
+
+I included the FULL modified sourcecode, because I don't want someone to copy
+and paste through a kernel mode driver. If you are experienced enough, you
+should know how to apply my changes to the original IBM sourcecode. All my
+changes are remarked with "KIEWITZ", so just look for them and adjust
+accordingly.
+
+The driver sourcecode was/is available via IBM DDK, so I don't think that
+posting those on the web is illegal. Also please note that not ALL required
+header files are included, so you still need to get the one on DDK.
+
+Sources are in sub-directory USBD
+
+Regards
+  M. Kiewitz

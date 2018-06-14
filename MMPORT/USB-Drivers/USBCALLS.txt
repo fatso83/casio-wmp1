@@ -1,0 +1,284 @@
+It's too long to know for sure, but afaik the only think that I changed was the
+buffering pointer stuff.
+
+ This here:
+  PUCHAR            TempBufPtr = (PUCHAR)(((ULONG)&TempBuf+0x1000) & 0xFFFFF000);
+
+ This one was bad, so the temporary buffer sometimes overflowed and took down
+  the system. I'm not sure (like I said), because I don't have the original
+  unmodified source. So I included both Bulk-functions. Please don't copy and
+  paste, but think about your actions, when modifying an already evolved
+  source-code.
+
+ USBCALLS.H was also modified. You should find a copy in USB4REXX\JimiHelp.
+
+  Regards
+    M. Kiewitz
+
+-------------------------------------------------------------------------------
+APIRET APIENTRY UsbBulkRead( USBHANDLE Handle,
+                    UCHAR  Endpoint,
+                    UCHAR  Interface,
+                    ULONG  *ulNumBytes,
+                    UCHAR  *pData,
+                    ULONG  ulTimeout)
+{
+  APIRET            rc;
+  ULONG             ulParmLen, ulDataLen, ulToProcess, ulTotalProcessed;
+  USBCALLS_BULK_REQ BulkRequest;
+  ULONG             TempEventCount;
+  UCHAR             TempBuf[0x2000];
+  PUCHAR            TempBufPtr = (PUCHAR)(((ULONG)&TempBuf+0x1000) & 0xFFFFF000);
+
+  if(!g_fInit)
+    return USB_NOT_INIT;
+
+  // 10 01 2003 - KIEWITZ -> Still @@ToDo Add Endpoint check based on descriptors
+  // We currently only allow Endpoint-addresses 80h->8Fh here
+  if ((Endpoint<0x80) || (Endpoint>0x8F))
+     return USB_ERROR_INVALID_ENDPOINT;
+
+  rc = DosCreateEventSem( NULL,
+                         (PHEV)&BulkRequest.ulEventDone,
+                         DC_SEM_SHARED,
+                         FALSE);
+  if(rc)
+     return rc;
+
+  BulkRequest.ulDevHandle = Handle;
+  BulkRequest.ucEndpoint  = Endpoint;
+  BulkRequest.ucInterface = Interface;
+  ulParmLen               = sizeof(USBCALLS_BULK_REQ);
+  ulToProcess             = *ulNumBytes;
+  ulTotalProcessed        = 0;
+
+/*  ulDataLen = *ulNumBytes; */
+/*  BulkRequest.usDataProcessed = 0; */
+/* */
+/*  rc = DosDevIOCtl( g_hUSBDrv, */
+/*                    IOCAT_USBRES, IOCTLF_SENDBULKURB, */
+/*                    (PVOID)&BulkRequest, ulParmLen, &ulParmLen, */
+/*                    ulDataLen>0?(PVOID)pData:NULL, */
+/*                    ulDataLen, */
+/*                    ulDataLen>0?&ulDataLen:NULL); */
+/*  if(rc==NO_ERROR) */
+/*  { */
+/*    rc = DosWaitEventSem( (HEV)BulkRequest.ulEventDone, */
+/*                          ulTimeout==0?0xFFFFFFFF:ulTimeout); */
+/*    if(rc==ERROR_TIMEOUT) */
+/*    { */
+/*      DosDevIOCtl( g_hUSBDrv, */
+/*                   IOCAT_USBRES, IOCTLF_CANCEL_IORB, */
+/*                   (PVOID)&BulkRequest, ulParmLen, &ulParmLen, */
+/*                   NULL, 0, NULL); */
+/* */
+/*    } */
+/*  } */
+/*  DosCloseEventSem( (HEV)BulkRequest.ulEventDone); */
+/*  *ulNumBytes = BulkRequest.usDataProcessed; */
+/*  return rc; */
+
+  if (((ULONG)pData & 0x0FFF)==0) {
+     // We are already page-aligned, so no copying, direct transfer
+     do {
+        BulkRequest.usDataProcessed = 0;
+        if (ulToProcess<=0x1000)             // Copy as much as 4k
+           ulDataLen = ulToProcess;
+          else
+           ulDataLen = 0x1000;
+
+        rc = DosDevIOCtl( g_hUSBDrv,
+                          IOCAT_USBRES, IOCTLF_SENDBULKURB,
+                          (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                          ulDataLen>0?(PVOID)pData:NULL,
+                          ulDataLen,
+                          ulDataLen>0?&ulDataLen:NULL);
+        if (rc==NO_ERROR) {
+           // We made the request, now wait for it to finish...
+           rc = DosWaitEventSem( (HEV)BulkRequest.ulEventDone,
+                                 ulTimeout==0?0xFFFFFFFF:ulTimeout);
+           if (rc==ERROR_TIMEOUT) {
+              // We experienced a Timeout, so abort Bulk-Writing
+              DosDevIOCtl( g_hUSBDrv,
+                           IOCAT_USBRES, IOCTLF_CANCEL_IORB,
+                           (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                           NULL, 0, NULL);
+              break;
+            }
+           // Reset semamorph for next block (if available)
+           DosResetEventSem( (HEV)BulkRequest.ulEventDone, &TempEventCount);
+         } else break;
+
+        // Adjust count and source pointer
+        ulToProcess      -= ulDataLen;
+        pData            += ulDataLen;
+        ulTotalProcessed += BulkRequest.usDataProcessed;
+
+        if (BulkRequest.usDataProcessed!=ulDataLen) {
+           // Transfered less than we wanted? so something is wrong, abort
+           rc = USB_ERROR_LESSTRANSFERED; break; }
+      } while (ulToProcess>0);
+   } else {
+     // The caller offered us no page-aligned pointer, so we need to copy
+     //  around
+     do {
+        BulkRequest.usDataProcessed = 0;
+        if (ulToProcess<=0x1000)            // Copy as much as 4k
+           ulDataLen = ulToProcess;
+          else
+           ulDataLen = 0x1000;
+
+        rc = DosDevIOCtl( g_hUSBDrv,
+                          IOCAT_USBRES, IOCTLF_SENDBULKURB,
+                          (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                          ulDataLen>0?(PVOID)TempBufPtr:NULL,
+                          ulDataLen,
+                          ulDataLen>0?&ulDataLen:NULL);
+        if (rc==NO_ERROR) {
+           // We made the request, now wait for it to finish...
+           rc = DosWaitEventSem( (HEV)BulkRequest.ulEventDone,
+                                 ulTimeout==0?0xFFFFFFFF:ulTimeout);
+           if (rc==ERROR_TIMEOUT) {
+              // We experienced a Timeout, so abort Bulk-Writing
+              DosDevIOCtl( g_hUSBDrv,
+                           IOCAT_USBRES, IOCTLF_CANCEL_IORB,
+                           (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                           NULL, 0, NULL);
+              break;
+            }
+           // Reset semamorph for next block (if available)
+           DosResetEventSem( (HEV)BulkRequest.ulEventDone, &TempEventCount);
+         } else break;
+
+        // Copy over from page-aligned buffer
+        memcpy(pData, TempBufPtr, BulkRequest.usDataProcessed);
+
+        // Adjust count and source pointer
+        ulToProcess      -= ulDataLen;
+        pData            += ulDataLen;
+        ulTotalProcessed += BulkRequest.usDataProcessed;
+
+        if (BulkRequest.usDataProcessed!=ulDataLen) {
+           // Transfered less than we wanted? so something is wrong, abort
+           rc = USB_ERROR_LESSTRANSFERED; break; }
+      } while (ulToProcess>0);
+   }
+
+  DosCloseEventSem( (HEV)BulkRequest.ulEventDone);
+  *ulNumBytes = ulTotalProcessed;
+  return rc;
+}
+
+APIRET APIENTRY UsbBulkWrite( USBHANDLE Handle,
+                     UCHAR  Endpoint,
+                     UCHAR  Interface,
+                     ULONG ulNumBytes,
+                     UCHAR  *pData,
+                     ULONG  ulTimeout)
+{
+  APIRET            rc;
+  ULONG             ulParmLen, ulDataLen;
+  USBCALLS_BULK_REQ BulkRequest;
+  ULONG             TempEventCount;
+  UCHAR             TempBuf[0x2000];
+  PUCHAR            TempBufPtr = (PUCHAR)(((ULONG)&TempBuf+0x1000) & 0xFFFFF000);
+
+  if(!g_fInit)
+    return USB_NOT_INIT;
+
+  // 10 01 2003 - KIEWITZ -> Still @@ToDo Add Endpoint check based on descriptors
+  // We currently only allow Endpoint-addresses 00h->0Fh here
+  if ((Endpoint>0x0F))
+     return USB_ERROR_INVALID_ENDPOINT;
+
+  rc = DosCreateEventSem( NULL,
+                         (PHEV)&BulkRequest.ulEventDone,
+                         DC_SEM_SHARED,
+                         FALSE);
+  if(rc)
+     return rc;
+
+  BulkRequest.ulDevHandle = Handle;
+  BulkRequest.ucEndpoint  = Endpoint;
+  BulkRequest.ucInterface = Interface;
+  ulParmLen = sizeof(USBCALLS_BULK_REQ);
+
+  if (((ULONG)pData & 0x0FFF)==0) {
+     // We are already page-aligned, so no copying, direct transfer
+     do {
+        BulkRequest.usDataProcessed = 0;
+        if (ulNumBytes<=0x1000)             // Copy as much as 4k
+           ulDataLen = ulNumBytes;
+          else
+           ulDataLen = 0x1000;
+
+        rc = DosDevIOCtl( g_hUSBDrv,
+                          IOCAT_USBRES, IOCTLF_SENDBULKURB,
+                          (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                          ulDataLen>0?(PVOID)pData:NULL,
+                          ulDataLen,
+                          ulDataLen>0?&ulDataLen:NULL);
+        if (rc==NO_ERROR) {
+           // We made the request, now wait for it to finish...
+           rc = DosWaitEventSem( (HEV)BulkRequest.ulEventDone,
+                                 ulTimeout==0?0xFFFFFFFF:ulTimeout);
+           if (rc==ERROR_TIMEOUT) {
+              // We experienced a Timeout, so abort Bulk-Writing
+              DosDevIOCtl( g_hUSBDrv,
+                           IOCAT_USBRES, IOCTLF_CANCEL_IORB,
+                           (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                           NULL, 0, NULL);
+              break;
+            }
+           // Reset semamorph for next block (if available)
+           DosResetEventSem( (HEV)BulkRequest.ulEventDone, &TempEventCount);
+         } else break;
+
+        // Adjust count and source pointer
+        ulNumBytes -= ulDataLen;
+        pData      += ulDataLen;
+      } while (ulNumBytes>0);
+   } else {
+     // The caller offered us no page-aligned pointer, so we need to copy
+     //  around
+     do {
+        BulkRequest.usDataProcessed = 0;
+        if (ulNumBytes<=0x1000)             // Copy as much as 4k
+           ulDataLen = ulNumBytes;
+          else
+           ulDataLen = 0x1000;
+
+        // Copy over to page-aligned buffer
+        memcpy(TempBufPtr, pData, ulDataLen);
+
+        rc = DosDevIOCtl( g_hUSBDrv,
+                          IOCAT_USBRES, IOCTLF_SENDBULKURB,
+                          (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                          ulDataLen>0?(PVOID)TempBufPtr:NULL,
+                          ulDataLen,
+                          ulDataLen>0?&ulDataLen:NULL);
+        if (rc==NO_ERROR) {
+           // We made the request, now wait for it to finish...
+           rc = DosWaitEventSem( (HEV)BulkRequest.ulEventDone,
+                                 ulTimeout==0?0xFFFFFFFF:ulTimeout);
+           if (rc==ERROR_TIMEOUT) {
+              // We experienced a Timeout, so abort Bulk-Writing
+              DosDevIOCtl( g_hUSBDrv,
+                           IOCAT_USBRES, IOCTLF_CANCEL_IORB,
+                           (PVOID)&BulkRequest, ulParmLen, &ulParmLen,
+                           NULL, 0, NULL);
+              break;
+            }
+           // Reset semamorph for next block (if available)
+           DosResetEventSem( (HEV)BulkRequest.ulEventDone, &TempEventCount);
+         } else break;
+
+        // Adjust count and source pointer
+        ulNumBytes -= ulDataLen;
+        pData      += ulDataLen;
+      } while (ulNumBytes>0);
+   }
+
+  DosCloseEventSem( (HEV)BulkRequest.ulEventDone);
+  return rc;
+}
