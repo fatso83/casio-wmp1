@@ -148,7 +148,7 @@
   ===========
 
         There were several ways to contact me.
-        Just try 'jimi@klinikum-konstanz.de'.
+        Just try 'EMAIL_HIDDEN - see `git blame` for actual'
          Please DO NOT POST THIS E-MAIL TO USENET NOR THE WEB!!!
 
         My official homepage is at: http://www.ecomstation.ru/kiewitzsoft/
