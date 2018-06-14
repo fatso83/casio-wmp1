@@ -22,8 +22,14 @@ href="https://dl.dropboxusercontent.com/u/514315/binaries/casio_wmp1/wmp1_org_fi
 ## Main contributors
 - Florian Schmidt (development)
 - Carl-Erik (minor bug fixes, research, documentation and code archeology)
+- Martin Kiewitz (wrote the original REXX code for OS/2)
 
 ## Changelog:
+
+### June 14 2018 Added original REXX code
+Thought it would be fun to find and add the original code for OS/2 that I sent Florian originally.
+I found it on the [OS/2 archive "Hobbes"](http://hobbes.nmsu.edu/h-viewer.php?dir=/pub/os2/apps/mmedia/music&file=mmportv1.zip).
+The original download site is [non-functional](http://en.ecomstation.ru/personal/kiewitzsoft/app-mmport.php) for this download.
 
 ### June 24 2013 Added INSTALL note
 Added a small howto on how to build on current systems (OS X and Linux)
