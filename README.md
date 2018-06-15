@@ -2,6 +2,8 @@ casio-wmp1
 ==========
 *Software for file management on the classic Casio WMP-1 watch*
 
+<img src="./assets/b1b72ibsxkfugfeuxcpl.jpg" alt="white background casio wmp 1" width="400px"/>
+
 This source code _should_ enable you to use the classic Casio WMP-1 wrist watch
 on all modern platforms, as its only dependency is libusb. 
 Unfortunately it only works successfully in Linux at the moment:
