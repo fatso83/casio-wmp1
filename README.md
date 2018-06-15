@@ -4,11 +4,17 @@ casio-wmp1
 
 <img src="./assets/b1b72ibsxkfugfeuxcpl.jpg" alt="white background casio wmp 1" width="400px"/>
 
+The Casio WMP 1 was the world's first MP3 watch when it came out in 2000. You can read more
+about it [here](https://www.pcauthority.com.au/news/retro-tech-casio-wmp1-wrist-audio-player-2000-282191.)
+
 This source code _should_ enable you to use the classic Casio WMP-1 wrist watch
 on all modern platforms, as its only dependency is libusb. 
 Unfortunately it only works successfully in Linux at the moment:
 - [Unable to compile libusb32](https://github.com/fatso83/casio-wmp1/issues/2) on Windows. 
 - libusb has a bug in OS X [that aborts transfers](https://github.com/fatso83/casio-wmp1/issues/1)
+
+The interface is a clunky text based interface, but it works reasonably well - 
+some would say better than the original Windows software, although that wouldn't say much :)
 
 For a bit of history and usage, see the old <a
 href="original_documentation/README">README</a>
