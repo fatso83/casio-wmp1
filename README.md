@@ -1,6 +1,7 @@
-casio-wmp1
-==========
-*Software for file management on the classic Casio WMP-1 watch*
+Casio WMP 1 management software
+===============================
+
+> Software for file management on the classic Casio WMP-1 watch
 
 <img src="./assets/b1b72ibsxkfugfeuxcpl.jpg" alt="white background casio wmp 1" width="400px"/>
 
@@ -19,6 +20,9 @@ some would say better than the original Windows software, although that wouldn't
 For a bit of history and usage, see the old <a
 href="original_documentation/README">README</a>
 
+## Installing
+See [./src/INSTALL.md](./src/INSTALL.md).
+
 ## Additional info
 I have kept an old copy of the original software for Windows 98 <a
 href="https://dl.dropboxusercontent.com/u/514315/binaries/casio_wmp1/casio_wap.zip">Casio WAP.</a> Still worked in Windows XP the last time I tried it (using Win98 emulation mode). Do not know about Windows 7 though ... But if you are on the lookout, then this is your lucky day :)
@@ -26,6 +30,9 @@ href="https://dl.dropboxusercontent.com/u/514315/binaries/casio_wmp1/casio_wap.z
 I also have a copy of the original contents of the MMC (including firmware) in
 case you should somehow manage to fuck it up. Can be found <a
 href="https://dl.dropboxusercontent.com/u/514315/binaries/casio_wmp1/wmp1_org_firmware.dat">here</a>.
+
+## Todo
+- Update to use the [newer lib usb](https://sourceforge.net/p/libusb/mailman/libusb-devel/thread/CAGjSPUCSPkCjKvrAVH7uzG2aFv1fG07gtko-wQGSBPwi2v3k5Q%40mail.gmail.com/). Also see issue #1.
 
 ## Main contributors
 - Florian Schmidt (development)
