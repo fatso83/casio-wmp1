@@ -25,7 +25,7 @@ setting that treats warnings as errors. This is very easy; just open the file ca
 Unpack it, make, and make install. That's it.
 
 ```
-tar xzf libusb-0.1.12.tar.gz
+tar xzf ../assets/libusb-0.1.12.tar.gz
 cd libusb-0.1.12
 
 # do the fix mentioned above, editing the file: 
