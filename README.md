@@ -21,7 +21,7 @@ For a bit of history and usage, see the old <a
 href="original_documentation/README">README</a>
 
 ## Installing
-See [./src/INSTALL.md](./src/INSTALL.md).
+See [./src/README.md](./src/README.md).
 
 ## Additional info
 I have kept an old copy of the original software for Windows 98 <a
