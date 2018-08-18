@@ -1,5 +1,6 @@
 Casio WMP 1 management software
 ===============================
+[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/fatso83)
 
 > Software for file management on the classic Casio WMP-1 watch
 
