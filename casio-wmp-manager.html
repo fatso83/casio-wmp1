@@ -482,14 +482,13 @@
 
             /**
              * Clear halt condition on control endpoint
+             * Note: WebUSB doesn't support clearHalt on control endpoint (endpoint 0)
+             * Control endpoint stalls are automatically cleared by the next setup packet
              */
             async clearControlHalt() {
-                try {
-                    await this.device.clearHalt('out', 0);
-                    console.log('Cleared halt on control endpoint');
-                } catch (error) {
-                    console.warn('Failed to clear control halt:', error.message);
-                }
+                // Control endpoint stalls are automatically cleared by the next control transfer
+                // No action needed for WebUSB - just log for debugging
+                console.log('Control endpoint stall will be cleared automatically by next transfer');
             }
 
             /**
@@ -530,7 +529,8 @@
                         if (error.message.includes('stall') && retryCount < maxRetries) {
                             console.warn(`USB stall detected, attempting recovery (attempt ${retryCount + 1}/${maxRetries + 1})`);
                             await this.clearControlHalt();
-                            await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay
+                            // Longer delay for stall recovery
+                            await new Promise(resolve => setTimeout(resolve, 250));
                             retryCount++;
                             continue;
                         }
@@ -575,7 +575,8 @@
                         if (error.message.includes('stall') && retryCount < maxRetries) {
                             console.warn(`USB stall detected on vendor message in, attempting recovery (attempt ${retryCount + 1}/${maxRetries + 1})`);
                             await this.clearControlHalt();
-                            await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay
+                            // Longer delay for stall recovery
+                            await new Promise(resolve => setTimeout(resolve, 250));
                             retryCount++;
                             continue;
                         }
@@ -614,7 +615,7 @@
                         if (error.message.includes('stall') && retryCount < maxRetries) {
                             console.warn(`USB bulk read stall detected on endpoint ${endpoint}, attempting recovery (attempt ${retryCount + 1}/${maxRetries + 1})`);
                             await this.clearBulkHalt(endpoint);
-                            await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay
+                            await new Promise(resolve => setTimeout(resolve, 250)); // Longer delay for stall recovery
                             retryCount++;
                             continue;
                         }
@@ -674,7 +675,7 @@
                         if (error.message.includes('stall') && retryCount < maxRetries) {
                             console.warn(`USB bulk stall detected on endpoint ${endpoint}, attempting recovery (attempt ${retryCount + 1}/${maxRetries + 1})`);
                             await this.clearBulkHalt(endpoint);
-                            await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay
+                            await new Promise(resolve => setTimeout(resolve, 250)); // Longer delay for stall recovery
                             retryCount++;
                             continue;
                         }
@@ -2132,11 +2133,35 @@
             }
         }
 
-        async function refreshFileList() {
+        // Throttling for refreshFileList to prevent rapid successive calls
+        let refreshFileListThrottle = null;
+        let lastRefreshTime = 0;
+        const MIN_REFRESH_INTERVAL = 1000; // Minimum 1 second between refreshes
+
+        async function refreshFileList(force = false) {
             if (!connected || !device || !tocManager || !mmcManager || !spaceManager) {
                 console.warn('Cannot refresh file list - not connected or managers not initialized');
                 return;
             }
+
+            // Throttle rapid successive calls unless forced
+            const now = Date.now();
+            if (!force && (now - lastRefreshTime) < MIN_REFRESH_INTERVAL) {
+                console.log('Throttling refreshFileList call - too soon after last refresh');
+                
+                // Clear existing throttle and set new one
+                if (refreshFileListThrottle) {
+                    clearTimeout(refreshFileListThrottle);
+                }
+                
+                refreshFileListThrottle = setTimeout(() => {
+                    refreshFileList(true); // Force the delayed call
+                }, MIN_REFRESH_INTERVAL - (now - lastRefreshTime));
+                
+                return;
+            }
+            
+            lastRefreshTime = now;
 
             const fileList = document.getElementById('fileList');
             const refreshBtn = document.getElementById('refreshBtn');
@@ -2159,6 +2184,9 @@
                     if (readResult !== 0) {
                         throw new Error('Failed to read TOC from watch');
                     }
+                    
+                    // Small delay between read and parse to give device time to recover
+                    await new Promise(resolve => setTimeout(resolve, 100));
                     
                     const parseResult = await tocManager.parseIntoArray();
                     if (parseResult !== 0) {
