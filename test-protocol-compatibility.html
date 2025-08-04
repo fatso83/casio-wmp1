@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protocol Compatibility Test Validation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .test-pass {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .test-fail {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .test-summary {
+            background-color: #e2e3e5;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #results {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Protocol Compatibility Test Validation</h1>
+    <p>This page validates that the test suite functions work correctly without requiring a physical device.</p>
+    
+    <button onclick="runValidationTests()">Run Validation Tests</button>
+    <button onclick="clearResults()">Clear Results</button>
+    
+    <div id="results"></div>
+
+    <script>
+        // Mock implementations for testing
+        const TOTAL_MMC_SIZE = 32047104;
+        
+        // Test results storage
+        let testResults = {
+            passed: 0,
+            failed: 0,
+            tests: []
+        };
+
+        // Test assertion helper
+        function assert(condition, message, testName) {
+            const result = {
+                test: testName,
+                message: message,
+                passed: condition,
+                timestamp: new Date().toISOString()
+            };
+            
+            testResults.tests.push(result);
+            
+            if (condition) {
+                testResults.passed++;
+                console.log(`✓ ${testName}: ${message}`);
+            } else {
+                testResults.failed++;
+                console.error(`✗ ${testName}: ${message}`);
+            }
+            
+            return condition;
+        }
+
+        // Mock FileManager class
+        class FileManager {
+            stripID3v2(arrayBuffer) {
+                const data = new Uint8Array(arrayBuffer);
+                
+                if (data.length < 10) {
+                    return data;
+                }
+                
+                // Check for ID3v2 header "ID3"
+                if (data[0] !== 0x49 || data[1] !== 0x44 || data[2] !== 0x33) {
+                    return data;
+                }
+                
+                let id3len = 10;
+                const flags = data[5];
+                
+                if (flags & 15) {
+                    return data;
+                }
+                
+                if (flags & (1 << 4)) {
+                    id3len += 10;
+                }
+                
+                // Read synchsafe integer size
+                let size = (data[6] << 24) | (data[7] << 16) | (data[8] << 8) | data[9];
+                size = (size & 0x7F) + 
+                       ((size >> 8) & 0x7F) * 128 +
+                       ((size >> 16) & 0x7F) * 128 * 128 +
+                       ((size >> 24) & 0x7F) * 128 * 128 * 128;
+                
+                id3len += size;
+                
+                if (id3len >= data.length) {
+                    return data;
+                }
+                
+                return data.slice(id3len);
+            }
+
+            parseFilename(filename) {
+                let title = filename;
+                let artist = '';
+                
+                const mp3Pos = title.toLowerCase().indexOf('.mp3');
+                if (mp3Pos !== -1) {
+                    title = title.substring(0, mp3Pos);
+                }
+                
+                const dashPos = title.indexOf(' - ');
+                if (dashPos !== -1) {
+                    artist = title.substring(0, dashPos).trim();
+                    title = title.substring(dashPos + 3).trim();
+                }
+                
+                if (title.length > 31) {
+                    title = title.substring(0, 31);
+                }
+                if (artist.length > 31) {
+                    artist = artist.substring(0, 31);
+                }
+                
+                return { artist, title };
+            }
+
+            parseTOC(tocData) {
+                const tracks = [];
+                
+                const trackCountView = new DataView(tocData.buffer, 4, 4);
+                const trackCount = trackCountView.getUint32(0, true);
+                
+                if (trackCount === 0) {
+                    return tracks;
+                }
+                
+                let curPos = 512;
+                
+                for (let i = 0; i < trackCount && curPos + 128 <= tocData.length; i++) {
+                    const trackOffset = new DataView(tocData.buffer, curPos, 4).getUint32(0, true);
+                    const trackSize = new DataView(tocData.buffer, curPos + 4, 4).getUint32(0, true);
+                    
+                    const titleBytes = tocData.slice(curPos + 8, curPos + 40);
+                    const artistBytes = tocData.slice(curPos + 40, curPos + 72);
+                    const albumBytes = tocData.slice(curPos + 72, curPos + 104);
+                    
+                    const title = String.fromCharCode(...titleBytes).replace(/\0.*$/, '');
+                    const artist = String.fromCharCode(...artistBytes).replace(/\0.*$/, '');
+                    const album = String.fromCharCode(...albumBytes).replace(/\0.*$/, '');
+                    
+                    tracks.push({
+                        index: i,
+                        offset: trackOffset,
+                        size: trackSize,
+                        title: title,
+                        artist: artist,
+                        album: album
+                    });
+                    
+                    curPos += 128;
+                }
+                
+                return tracks;
+            }
+        }
+
+        // Mock SpaceManager class
+        class SpaceManager {
+            constructor() {
+                this.TOC_SIZE = 16896;
+                this.BLOCK_ALIGNMENT = 512;
+                this.usedSpace = new Map();
+                this.totalFree = 0;
+                this.biggestFreeBlock = 0;
+                this.totalSize = TOTAL_MMC_SIZE;
+            }
+
+            findSpace(wish) {
+                let start = this.TOC_SIZE;
+                let bestFitOffset = -1;
+                let bestFit = 0;
+
+                const sortedUsedSpace = Array.from(this.usedSpace.entries()).sort((a, b) => a[0] - b[0]);
+
+                for (const [offset, size] of sortedUsedSpace) {
+                    const before = offset - start;
+                    
+                    if (before >= wish && (before < bestFit || bestFitOffset === -1)) {
+                        bestFit = before;
+                        bestFitOffset = start;
+                    }
+                    
+                    start = offset + size;
+                }
+
+                const after = this.totalSize - start;
+                if (after >= wish && (after < bestFit || bestFitOffset === -1)) {
+                    bestFit = after;
+                    bestFitOffset = start;
+                }
+
+                return bestFitOffset;
+            }
+
+            useSpace(itemOffset, itemLength) {
+                const tempNum = itemLength & 511;
+                if (tempNum !== 0) {
+                    itemLength += (512 - tempNum);
+                }
+
+                this.usedSpace.set(itemOffset, itemLength);
+                this.calcFreeSpace();
+            }
+
+            calcFreeSpace() {
+                let start = this.TOC_SIZE;
+                this.biggestFreeBlock = 0;
+                this.totalFree = 0;
+
+                const sortedUsedSpace = Array.from(this.usedSpace.entries()).sort((a, b) => a[0] - b[0]);
+
+                for (const [offset, size] of sortedUsedSpace) {
+                    const before = offset - start;
+                    
+                    if (before > this.biggestFreeBlock) {
+                        this.biggestFreeBlock = before;
+                    }
+                    
+                    this.totalFree += before;
+                    start = offset + size;
+                }
+
+                const after = this.totalSize - start;
+                if (after > this.biggestFreeBlock) {
+                    this.biggestFreeBlock = after;
+                }
+                
+                this.totalFree += after;
+            }
+
+            getSpaceInfo() {
+                return {
+                    totalSize: this.totalSize,
+                    usedSize: this.totalSize - this.totalFree,
+                    freeSize: this.totalFree
+                };
+            }
+        }
+
+        // Validation tests
+        function testID3v2Stripping() {
+            console.log('Testing ID3v2 stripping...');
+            
+            const fileManager = new FileManager();
+            
+            // Create test MP3 data with ID3v2 header
+            const id3v2Header = new Uint8Array([
+                0x49, 0x44, 0x33, // "ID3"
+                0x03, 0x00,       // Version 2.3
+                0x00,             // Flags
+                0x00, 0x00, 0x00, 0x0A // Size (10 bytes in synchsafe format)
+            ]);
+            
+            const id3v2TagData = new Uint8Array(10);
+            const mp3Data = new Uint8Array([0xFF, 0xFB, 0x90, 0x00]);
+            
+            const testFileData = new Uint8Array(id3v2Header.length + id3v2TagData.length + mp3Data.length);
+            testFileData.set(id3v2Header, 0);
+            testFileData.set(id3v2TagData, id3v2Header.length);
+            testFileData.set(mp3Data, id3v2Header.length + id3v2TagData.length);
+            
+            const strippedData = fileManager.stripID3v2(testFileData);
+            const expectedStrippedSize = mp3Data.length;
+            
+            assert(strippedData.length === expectedStrippedSize, 
+                `ID3v2 stripping: ${testFileData.length} -> ${strippedData.length} (expected ${expectedStrippedSize})`, 
+                'ID3v2 Stripping');
+        }
+
+        function testFilenamesParsing() {
+            console.log('Testing filename parsing...');
+            
+            const fileManager = new FileManager();
+            
+            const testCases = [
+                { input: "Artist Name - Song Title.mp3", expectedArtist: "Artist Name", expectedTitle: "Song Title" },
+                { input: "NoArtist.mp3", expectedArtist: "", expectedTitle: "NoArtist" },
+                { input: "Artist - .mp3", expectedArtist: "Artist", expectedTitle: "" },
+                { input: " - Title.mp3", expectedArtist: "", expectedTitle: "Title" }
+            ];
+            
+            for (const testCase of testCases) {
+                const metadata = fileManager.parseFilename(testCase.input);
+                assert(metadata.artist === testCase.expectedArtist, 
+                    `Artist parsed correctly for "${testCase.input}": got "${metadata.artist}", expected "${testCase.expectedArtist}"`, 
+                    'Filename Parsing - Artist');
+                assert(metadata.title === testCase.expectedTitle, 
+                    `Title parsed correctly for "${testCase.input}": got "${metadata.title}", expected "${testCase.expectedTitle}"`, 
+                    'Filename Parsing - Title');
+            }
+        }
+
+        function testSpaceManagement() {
+            console.log('Testing space management...');
+            
+            const spaceManager = new SpaceManager();
+            
+            // Test initial state
+            spaceManager.calcFreeSpace();
+            const initialInfo = spaceManager.getSpaceInfo();
+            
+            assert(initialInfo.totalSize === TOTAL_MMC_SIZE, 'Total size correct', 'Space Management - Total Size');
+            assert(initialInfo.freeSize > 0, 'Initial free space available', 'Space Management - Initial Free');
+            
+            // Test space allocation
+            const testOffset = 20000;
+            const testSize = 1000;
+            const expectedAlignedSize = 1024; // 1000 + (512 - (1000 & 511)) = 1024
+            
+            spaceManager.useSpace(testOffset, testSize);
+            const alignedSize = spaceManager.usedSpace.get(testOffset);
+            
+            assert(alignedSize === expectedAlignedSize, 
+                `Space usage aligned: ${testSize} -> ${alignedSize} (expected ${expectedAlignedSize})`, 
+                'Space Management - Alignment');
+            
+            // Test space finding
+            const foundOffset = spaceManager.findSpace(512);
+            assert(foundOffset >= 16896 || foundOffset === -1, 'Space allocation after TOC', 'Space Management - Allocation');
+        }
+
+        function testTOCParsing() {
+            console.log('Testing TOC parsing...');
+            
+            const fileManager = new FileManager();
+            
+            // Create test TOC with one track
+            const tocData = new Uint8Array(16896);
+            tocData.fill(0);
+            
+            // Set track count to 1
+            const trackCountView = new DataView(tocData.buffer, 4, 4);
+            trackCountView.setUint32(0, 1, true);
+            
+            // Set track data at offset 512
+            const trackOffset = 20000;
+            const trackSize = 5000;
+            const title = "Test Title";
+            const artist = "Test Artist";
+            const album = "Test Album";
+            
+            const trackDataView = new DataView(tocData.buffer, 512, 128);
+            trackDataView.setUint32(0, trackOffset, true);
+            trackDataView.setUint32(4, trackSize, true);
+            
+            // Set strings
+            const titleBytes = new TextEncoder().encode(title);
+            const artistBytes = new TextEncoder().encode(artist);
+            const albumBytes = new TextEncoder().encode(album);
+            
+            tocData.set(titleBytes, 512 + 8);
+            tocData.set(artistBytes, 512 + 40);
+            tocData.set(albumBytes, 512 + 72);
+            
+            const tracks = fileManager.parseTOC(tocData);
+            
+            assert(tracks.length === 1, 'Parsed one track', 'TOC Parsing - Track Count');
+            assert(tracks[0].offset === trackOffset, 'Track offset correct', 'TOC Parsing - Offset');
+            assert(tracks[0].size === trackSize, 'Track size correct', 'TOC Parsing - Size');
+            assert(tracks[0].title === title, 'Track title correct', 'TOC Parsing - Title');
+            assert(tracks[0].artist === artist, 'Track artist correct', 'TOC Parsing - Artist');
+            assert(tracks[0].album === album, 'Track album correct', 'TOC Parsing - Album');
+        }
+
+        function test512ByteAlignment() {
+            console.log('Testing 512-byte alignment...');
+            
+            const testCases = [
+                { input: 100, expected: 512 },
+                { input: 512, expected: 512 },
+                { input: 1000, expected: 1024 },
+                { input: 1024, expected: 1024 },
+            ];
+            
+            for (const testCase of testCases) {
+                const tempNum = testCase.input & 511;
+                const transferLength = tempNum !== 0 ? testCase.input + (512 - tempNum) : testCase.input;
+                assert(transferLength === testCase.expected, 
+                    `Alignment for ${testCase.input} bytes = ${transferLength} (expected ${testCase.expected})`, 
+                    '512-byte Alignment');
+            }
+        }
+
+        async function runValidationTests() {
+            console.log('🧪 Starting Protocol Compatibility Test Validation...');
+            
+            // Reset test results
+            testResults = {
+                passed: 0,
+                failed: 0,
+                tests: []
+            };
+            
+            const startTime = performance.now();
+            
+            try {
+                // Run validation tests
+                testID3v2Stripping();
+                testFilenamesParsing();
+                testSpaceManagement();
+                testTOCParsing();
+                test512ByteAlignment();
+                
+                const endTime = performance.now();
+                const totalTime = (endTime - startTime) / 1000;
+                
+                // Display results
+                displayResults(totalTime);
+                
+            } catch (error) {
+                console.error('Validation test failed:', error);
+                displayError(error.message);
+            }
+        }
+
+        function displayResults(totalTime) {
+            const resultsDiv = document.getElementById('results');
+            
+            let html = `<div class="test-summary">
+                <h3>Test Results Summary</h3>
+                <p><strong>Passed:</strong> ${testResults.passed}</p>
+                <p><strong>Failed:</strong> ${testResults.failed}</p>
+                <p><strong>Total Time:</strong> ${totalTime.toFixed(2)} seconds</p>
+                <p><strong>Success Rate:</strong> ${((testResults.passed / (testResults.passed + testResults.failed)) * 100).toFixed(1)}%</p>
+            </div>`;
+            
+            html += '<h3>Individual Test Results</h3>';
+            
+            for (const test of testResults.tests) {
+                const cssClass = test.passed ? 'test-pass' : 'test-fail';
+                const icon = test.passed ? '✓' : '✗';
+                html += `<div class="${cssClass}">
+                    ${icon} <strong>${test.test}:</strong> ${test.message}
+                </div>`;
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+
+        function displayError(message) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `<div class="test-fail">
+                <strong>Error:</strong> ${message}
+            </div>`;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+            testResults = { passed: 0, failed: 0, tests: [] };
+        }
+    </script>
+</body>
+</html>
