@@ -49,12 +49,13 @@ Webusb only works over https or from localhost:
 # Option 1: Serve locally (recommended for security)
 # Using Python 3
 python -m http.server 8000
-# Then open http://localhost:8000/casio-wmp-manager.html
+Then open http://localhost:8000/casio-wmp-manager.html
 
-# Option 2
-Just host it somewhere
+# Option 2:
+Access it at [wmp1.simenf.com](https://wmp1.simenf.com) hosted with cloudflare pages.
 
-Todo: I will host it somewhere soon.
+Option 3: 
+Host it yourself somewhere.
 ```
 
 ---
