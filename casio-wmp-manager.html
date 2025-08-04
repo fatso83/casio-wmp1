@@ -349,6 +349,14 @@
             transition: width 0.3s ease;
         }
         
+        .upload-file-percentage {
+            font-size: 11px;
+            color: #666;
+            margin-left: 8px;
+            min-width: 35px;
+            text-align: right;
+        }
+        
         .upload-status {
             font-size: 12px;
             font-weight: bold;
@@ -2861,8 +2869,11 @@
                         <div class="upload-file-info">
                             <div class="upload-file-name">${file.name}</div>
                             <div class="upload-file-details">${Math.round(file.size / 1024)} KB</div>
-                            <div class="upload-file-progress">
-                                <div class="upload-file-progress-fill" style="width: 0%"></div>
+                            <div style="display: flex; align-items: center;">
+                                <div class="upload-file-progress">
+                                    <div class="upload-file-progress-fill" style="width: 0%"></div>
+                                </div>
+                                <div class="upload-file-percentage" id="percent-${index}">0%</div>
                             </div>
                         </div>
                         <div class="upload-status" id="status-${index}">Waiting...</div>
@@ -2880,6 +2891,7 @@
                     const fileElement = fileProgressElements.get(i);
                     const statusElement = fileElement.querySelector(`#status-${i}`);
                     const progressFill = fileElement.querySelector('.upload-file-progress-fill');
+                    const percentageElement = fileElement.querySelector(`#percent-${i}`);
                     
                     try {
                         // Progress callback for this file
@@ -2888,10 +2900,12 @@
                                 statusElement.textContent = `Error: ${errorMsg}`;
                                 statusElement.className = 'upload-status error';
                                 progressFill.style.width = '0%';
+                                percentageElement.textContent = '0%';
                             } else if (stage === 'complete') {
                                 statusElement.textContent = 'Complete';
                                 statusElement.className = 'upload-status success';
                                 progressFill.style.width = '100%';
+                                percentageElement.textContent = '100%';
                             } else {
                                 const stageNames = {
                                     'reading': 'Reading file...',
@@ -2904,6 +2918,7 @@
                                 statusElement.textContent = stageNames[stage] || 'Processing...';
                                 statusElement.className = 'upload-status uploading';
                                 progressFill.style.width = percent + '%';
+                                percentageElement.textContent = Math.round(percent) + '%';
                             }
                         };
                         
