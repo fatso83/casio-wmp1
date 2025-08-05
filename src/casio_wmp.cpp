@@ -114,10 +114,26 @@ int MMC_Read(int device_handle, int Offset, int Length, unsigned char* buffer) {
 	unsigned char get_setup[16];
 	
 	memset(get_setup, 0, 16);
-	memcpy(get_setup + 4, &Offset, 4);
+	
+	// Store offset in little-endian format (bytes 4-7)
+	get_setup[4] = Offset & 0xFF;
+	get_setup[5] = (Offset >> 8) & 0xFF;
+	get_setup[6] = (Offset >> 16) & 0xFF;
+	get_setup[7] = (Offset >> 24) & 0xFF;
+	
 	Offset += TransferLength;
-	memcpy(get_setup + 8, &Offset, 4);
-	memcpy(get_setup + 12, &TransferLength, 4);
+	
+	// Store end offset in little-endian format (bytes 8-11)
+	get_setup[8] = Offset & 0xFF;
+	get_setup[9] = (Offset >> 8) & 0xFF;
+	get_setup[10] = (Offset >> 16) & 0xFF;
+	get_setup[11] = (Offset >> 24) & 0xFF;
+	
+	// Store transfer length in little-endian format (bytes 12-15)
+	get_setup[12] = TransferLength & 0xFF;
+	get_setup[13] = (TransferLength >> 8) & 0xFF;
+	get_setup[14] = (TransferLength >> 16) & 0xFF;
+	get_setup[15] = (TransferLength >> 24) & 0xFF;
 
 	int ret = usb_vendor_message_out(device_handle, 1, 1, 0, get_setup, 16);
 	if(ret < 0) {
@@ -168,10 +184,26 @@ int MMC_Write(int device_handle, int Offset, unsigned char* DataBuffer, int leng
 	
 	unsigned char put_setup[16];
 	memset(put_setup, 0, 16);
-	memcpy(put_setup + 4, &Offset, 4);
+	
+	// Store offset in little-endian format (bytes 4-7)
+	put_setup[4] = Offset & 0xFF;
+	put_setup[5] = (Offset >> 8) & 0xFF;
+	put_setup[6] = (Offset >> 16) & 0xFF;
+	put_setup[7] = (Offset >> 24) & 0xFF;
+	
 	Offset += length;
-	memcpy(put_setup + 8, &Offset, 4);
-	memcpy(put_setup + 12, &length, 4);
+	
+	// Store end offset in little-endian format (bytes 8-11)
+	put_setup[8] = Offset & 0xFF;
+	put_setup[9] = (Offset >> 8) & 0xFF;
+	put_setup[10] = (Offset >> 16) & 0xFF;
+	put_setup[11] = (Offset >> 24) & 0xFF;
+	
+	// Store length in little-endian format (bytes 12-15)
+	put_setup[12] = length & 0xFF;
+	put_setup[13] = (length >> 8) & 0xFF;
+	put_setup[14] = (length >> 16) & 0xFF;
+	put_setup[15] = (length >> 24) & 0xFF;
 
 	int ret = usb_vendor_message_out(device_handle, 1, 0, 0, put_setup, 16);
 	
@@ -214,7 +246,11 @@ void TOC_UseSpace(int ItemOffset, int ItemLength) {
 }
 
 int TOC_ParseIntoArray() {
-	memcpy(&MMC_TrackCount, MMC_TOC + 4, 4);
+	// Read track count from little-endian format (bytes 4-7)
+	MMC_TrackCount = (unsigned char)MMC_TOC[4] | 
+	                 ((unsigned char)MMC_TOC[5] << 8) | 
+	                 ((unsigned char)MMC_TOC[6] << 16) | 
+	                 ((unsigned char)MMC_TOC[7] << 24);
 
 	int cur_pos = 512;
 
@@ -229,19 +265,37 @@ int TOC_ParseIntoArray() {
 		// printf("reading track %d\n", TrackNo + 1);
 		
 		char buffer[128];
-		memcpy(&MMC_TrackOffset[TrackNo], MMC_TOC + cur_pos, 4);
-		memcpy(&MMC_TrackSize[TrackNo], MMC_TOC + cur_pos + 4, 4);
+		
+		// Read offset from little-endian format
+		MMC_TrackOffset[TrackNo] = (unsigned char)MMC_TOC[cur_pos] | 
+		                          ((unsigned char)MMC_TOC[cur_pos + 1] << 8) | 
+		                          ((unsigned char)MMC_TOC[cur_pos + 2] << 16) | 
+		                          ((unsigned char)MMC_TOC[cur_pos + 3] << 24);
+		
+		// Read size from little-endian format
+		MMC_TrackSize[TrackNo] = (unsigned char)MMC_TOC[cur_pos + 4] | 
+		                        ((unsigned char)MMC_TOC[cur_pos + 5] << 8) | 
+		                        ((unsigned char)MMC_TOC[cur_pos + 6] << 16) | 
+		                        ((unsigned char)MMC_TOC[cur_pos + 7] << 24);
 	
 		memcpy(buffer, MMC_TOC + cur_pos + 8, 32);
+		buffer[31] = 0; // Ensure null termination
 		MMC_TrackTitle[TrackNo] = buffer;
 		
 		memcpy(buffer, MMC_TOC + cur_pos + 40, 32);
+		buffer[31] = 0; // Ensure null termination
 		MMC_TrackArtist[TrackNo] = buffer;
 		
 		memcpy(buffer, MMC_TOC + cur_pos + 72, 32);
+		buffer[31] = 0; // Ensure null termination
 		MMC_TrackAlbum[TrackNo] = buffer;
 		
-		// memcpy(buffer, MMC_TOC + cur_pos + 8192, 128);
+		// Read animation data from second section (8192 + TrackNo * 128)
+		if(8192 + TrackNo * 128 + 128 <= 16384) {
+			MMC_TrackAnimation[TrackNo] = string((char*)(MMC_TOC + 8192 + TrackNo * 128), 128);
+		} else {
+			MMC_TrackAnimation[TrackNo] = string(128, 0);
+		}
 		
 		/* Mark this block as used */
 		TOC_UseSpace(MMC_TrackOffset[TrackNo], MMC_TrackSize[TrackNo]);
@@ -260,11 +314,27 @@ int TOC_ParseIntoArray() {
 void TOC_GenerateFromArray() {
 	/* Update counters in TOC-Header */
 	memset(MMC_TOC, 0, 4);
-	memcpy(MMC_TOC + 4, &MMC_TrackCount, 4);
+	
+	// Store track count in little-endian format (bytes 4-7)
+	MMC_TOC[4] = MMC_TrackCount & 0xFF;
+	MMC_TOC[5] = (MMC_TrackCount >> 8) & 0xFF;
+	MMC_TOC[6] = (MMC_TrackCount >> 16) & 0xFF;
+	MMC_TOC[7] = (MMC_TrackCount >> 24) & 0xFF;
+	
 	memset(MMC_TOC + 8, 0, 2);
-	memcpy(MMC_TOC + 10, &MMC_TrackCount, 4);
+	
+	// Store track count again in little-endian format (bytes 10-13)
+	MMC_TOC[10] = MMC_TrackCount & 0xFF;
+	MMC_TOC[11] = (MMC_TrackCount >> 8) & 0xFF;
+	MMC_TOC[12] = (MMC_TrackCount >> 16) & 0xFF;
+	MMC_TOC[13] = (MMC_TrackCount >> 24) & 0xFF;
+	
 	memset(MMC_TOC + 14, 0, 2);
 	
+	// Clear the rest of the header (up to byte 512)
+	memset(MMC_TOC + 16, 0, 496);
+	
+	// First section: Track entries (512 to 8704 bytes)
 	for(int i = 0; i < MMC_TrackCount; i++) {
 		if(MMC_TrackTitle[i].size() > 31)
 			MMC_TrackTitle[i] = MMC_TrackTitle[i].substr(0, 31);
@@ -272,27 +342,50 @@ void TOC_GenerateFromArray() {
 		if(MMC_TrackArtist[i].size() > 31)
 			MMC_TrackArtist[i] = MMC_TrackArtist[i].substr(0, 31);
 		
-		if(MMC_TrackArtist[i].size() > 31)
+		if(MMC_TrackAlbum[i].size() > 31)
 			MMC_TrackAlbum[i] = MMC_TrackAlbum[i].substr(0, 31);
 		
 		unsigned char* TrackEntry = MMC_TOC + i * 128 + 512;
 		
 		memset(TrackEntry, 0, 128);
-		memcpy(TrackEntry, &MMC_TrackOffset[i], 4);
-		memcpy(TrackEntry + 4, &MMC_TrackSize[i], 4);
+		
+		// Convert to little-endian format (like REXX REVERSE() function)
+		unsigned int offset_le = MMC_TrackOffset[i];
+		unsigned int size_le = MMC_TrackSize[i];
+		
+		// Store as little-endian bytes
+		TrackEntry[0] = offset_le & 0xFF;
+		TrackEntry[1] = (offset_le >> 8) & 0xFF;
+		TrackEntry[2] = (offset_le >> 16) & 0xFF;
+		TrackEntry[3] = (offset_le >> 24) & 0xFF;
+		
+		TrackEntry[4] = size_le & 0xFF;
+		TrackEntry[5] = (size_le >> 8) & 0xFF;
+		TrackEntry[6] = (size_le >> 16) & 0xFF;
+		TrackEntry[7] = (size_le >> 24) & 0xFF;
+		
 		memcpy(TrackEntry + 8, MMC_TrackTitle[i].c_str(), MMC_TrackTitle[i].size());
 		memcpy(TrackEntry + 40, MMC_TrackArtist[i].c_str(), MMC_TrackArtist[i].size());
 		memcpy(TrackEntry + 72, MMC_TrackAlbum[i].c_str(), MMC_TrackAlbum[i].size());
-		
-		memset(MMC_TOC + MMC_TrackCount * 128 + 512 + i * 128, 0, 128);
+		// Add 4 zero bytes and 20 more zero bytes to complete the 128-byte entry
+		memset(TrackEntry + 104, 0, 24);
 	}
-	/* Enlarge to get 8192 TOC */
-	// not needed MMC_TOC = MMC_TOC || Copies(D2C(0), 128 * (64 - MMC_TrackCount))
 	
-	// print_binary_text("MMC_TOC", MMC_TOC, 16384);
-
-	/* Enlarge to get 16384 TOC */
-	// not needed MMC_TOC = MMC_TOC||Copies(D2C(0),128*(64-MMC_TrackCount))
+	// Pad first section to 8192 bytes (64 * 128 = 8192, starting from byte 512)
+	memset(MMC_TOC + 512 + MMC_TrackCount * 128, 0, 128 * (64 - MMC_TrackCount));
+	
+	// Second section: Animation data (8192 to 16384 bytes)
+	for(int i = 0; i < MMC_TrackCount; i++) {
+		unsigned char* AnimationEntry = MMC_TOC + 8192 + i * 128;
+		if(MMC_TrackAnimation[i].size() == 128) {
+			memcpy(AnimationEntry, MMC_TrackAnimation[i].c_str(), 128);
+		} else {
+			memset(AnimationEntry, 0, 128);
+		}
+	}
+	
+	// Pad second section to complete 16384 bytes
+	memset(MMC_TOC + 8192 + MMC_TrackCount * 128, 0, 128 * (64 - MMC_TrackCount));
 
 	return;
 }
@@ -318,31 +411,33 @@ void TOC_FreeSpace(int ItemOffset) {
 }
 	
 int TOC_FindSpace(int wish) {
-	int start = 16896;
-
-	int best_fit_offset = -1;
-	int best_fit = 0;
-
+	// Simple approach: always allocate at the end of used space
+	// This avoids fragmentation issues and ensures sequential allocation
+	
+	int highest_end = 16896; // Start after TOC
+	
+	// Find the highest ending offset of all used blocks
 	for(map<int, int>::iterator i = MMC_UsedSpace.begin(); i != MMC_UsedSpace.end(); i++) {
-		int offset = i->first;
-		int size = i->second;
-	
-		int before = offset - start;
-	
-		if(before >= wish && (before < best_fit || best_fit_offset == -1)) {
-			best_fit = before;
-			best_fit_offset = start;
+		int block_end = i->first + i->second;
+		if(block_end > highest_end) {
+			highest_end = block_end;
 		}
-	
-		start = offset + size;	
-	}
-	int after = MMC_TotalSize - start;
-	if(after >= wish && (after < best_fit || best_fit_offset == -1)) {
-		best_fit = after;
-		best_fit_offset = start;
 	}
 	
-	return best_fit_offset;
+	// Ensure 512-byte alignment
+	int alignment = highest_end & 511;
+	if(alignment != 0) {
+		highest_end += (512 - alignment);
+	}
+	
+	// Check if there's enough space
+	if(highest_end + wish > MMC_TotalSize) {
+		return -1; // Not enough space
+	}
+	
+	printf("DEBUG: Sequential allocation at offset %d (after highest_end %d)\n", highest_end, highest_end);
+	
+	return highest_end;
 }
 	
 void TOC_CalcFreeSpace() {
@@ -561,6 +656,12 @@ void add_file(int device_handle) {
 		printf("im sorry, but there isn't enough space left!\n");
 		return;
 	}
+	
+	printf("DEBUG: Allocated space at offset %d for file size %d\n", new_offset, file_size);
+	printf("DEBUG: Current used space blocks:\n");
+	for(map<int, int>::iterator i = MMC_UsedSpace.begin(); i != MMC_UsedSpace.end(); i++) {
+		printf("  Offset: %d, Size: %d (ends at %d)\n", i->first, i->second, i->first + i->second);
+	}
 
 	string title = filename;
 	string album;
@@ -631,23 +732,12 @@ void add_file(int device_handle) {
 
 	double start = get_time();
 	
-	
-	unsigned int block_size = 10 * 1024;
-	unsigned int file_offset = 0;
-	
-	while(1) {
-		unsigned int len = min(block_size, file_size - file_offset);
-		printf("writing to offset %d %d bytes\n", new_offset, len);
-		if(MMC_Write(device_handle, new_offset, data + file_offset, len)) {
-			printf("error uploading file.\n");
-			free(data);
-			return;
-		}
-		file_offset += len;
-		new_offset += len;
-		if(file_offset == file_size)
-			break;
-		usleep(100000);
+	// Write entire file at once (like REXX version)
+	printf("writing to offset %d %d bytes\n", new_offset, file_size);
+	if(MMC_Write(device_handle, new_offset, data, file_size)) {
+		printf("error uploading file.\n");
+		free(data);
+		return;
 	}
 	
 	
