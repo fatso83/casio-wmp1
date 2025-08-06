@@ -380,12 +380,171 @@
         .upload-status.uploading {
             color: #007bff;
         }
+
+        /* Upload queue styles */
+        .upload-queue {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+
+        .upload-queue h4 {
+            margin: 0 0 15px 0;
+            color: #495057;
+            font-size: 16px;
+        }
+
+        .selected-file-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px;
+            margin: 8px 0;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .selected-file-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        .selected-file-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .selected-file-details {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .metadata-editor {
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: 8px;
+            align-items: center;
+            margin-top: 8px;
+        }
+
+        .metadata-editor label {
+            font-size: 12px;
+            color: #495057;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .metadata-editor input {
+            padding: 4px 8px;
+            border: 1px solid #ced4da;
+            border-radius: 3px;
+            font-size: 12px;
+            background-color: #fff;
+        }
+
+        .metadata-editor input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        .selected-file-actions {
+            margin-left: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .remove-file-btn {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .remove-file-btn:hover {
+            background-color: #c82333;
+        }
+
+        .clear-all-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .clear-all-btn:hover {
+            background-color: #5a6268;
+        }
+
+        /* Drag and drop reordering styles */
+        .selected-file-item {
+            cursor: move;
+            transition: all 0.2s ease;
+        }
+
+        .selected-file-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .selected-file-item.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+            z-index: 1000;
+        }
+
+        .selected-file-item.drag-over {
+            border-top: 3px solid #007bff;
+            margin-top: 3px;
+        }
+
+        .drag-handle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            color: #6c757d;
+            cursor: grab;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .drag-handle:hover {
+            color: #495057;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .reorder-instructions {
+            font-size: 11px;
+            color: #6c757d;
+            margin-bottom: 10px;
+            font-style: italic;
+        }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Casio WMP-1 Manager rev 9</h1>
+        <h1>Casio WMP-1 Manager rev 10</h1>
 
         <div class="connection-section" id="connectionSection">
             <h3>Connect Your Watch</h3>
@@ -413,6 +572,11 @@
                         <p style="margin: 0; font-size: 12px; color: #999;">
                             Supports 96-128kbps, 44.1kHz MP3 files
                         </p>
+                    </div>
+
+                    <div class="upload-queue" id="uploadQueue" style="display: none;">
+                        <h4>Selected Files for Upload</h4>
+                        <div id="selectedFileList"></div>
                     </div>
 
                     <div class="upload-progress" id="uploadProgress">
@@ -460,6 +624,7 @@
             // Global state
             let device = null;
             let connected = false;
+            let selectedFiles = []; // Array to track selected files with metadata
             let deviceState = {
                 connected: false,
                 device: null,
@@ -2248,6 +2413,9 @@
                 // File input change handler
                 fileInput.addEventListener('change', function () {
                     const files = Array.from(this.files);
+                    
+                    // Clear previous selection
+                    selectedFiles = [];
 
                     if (files.length > 0) {
                         // Validate selected files
@@ -2264,6 +2432,20 @@
                         if (validation.warnings.length > 0) {
                             showWarning(`File warnings: ${validation.warnings.join(', ')}`);
                         }
+
+                        // Process valid files and add to selectedFiles array
+                        validation.valid.forEach((file, index) => {
+                            const fileObj = {
+                                file: file,
+                                id: Date.now() + index, // Simple unique ID
+                                metadata: {
+                                    title: file.name.replace(/\.mp3$/i, ''),
+                                    artist: '',
+                                    album: ''
+                                }
+                            };
+                            selectedFiles.push(fileObj);
+                        });
 
                         // Log file info
                         console.log(`Selected ${files.length} file(s) (${validation.valid.length} valid):`);
@@ -2283,6 +2465,7 @@
                         }
                     }
 
+                    updateSelectedFilesDisplay();
                     updateUploadButtonState();
                 });
 
@@ -3266,8 +3449,12 @@
              * Upload selected files to the watch
              */
             async function uploadSelectedFiles() {
-                const fileInput = document.getElementById('fileInput');
-                const files = Array.from(fileInput.files);
+                if (selectedFiles.length === 0) {
+                    showError('No files selected for upload');
+                    return;
+                }
+                
+                const files = selectedFiles.map(fileObj => fileObj.file);
 
                 if (!files.length) {
                     showError('Please select files to upload', ErrorCategories.FILE_VALIDATION);
@@ -3425,8 +3612,10 @@
                         // Refresh file list to show new files
                         await refreshFileList();
 
-                        // Clear file input
+                        // Clear file input and selected files
+                        selectedFiles = [];
                         fileInput.value = '';
+                        updateSelectedFilesDisplay();
                         updateUploadButtonState();
                     } else {
                         showError(`All uploads failed (${errorCount} files)`);
@@ -3442,13 +3631,247 @@
             }
 
             /**
+             * Update the display of selected files with metadata editing
+             */
+            function updateSelectedFilesDisplay() {
+                const uploadQueue = document.getElementById('uploadQueue');
+                const selectedFileList = document.getElementById('selectedFileList');
+
+                if (selectedFiles.length === 0) {
+                    uploadQueue.style.display = 'none';
+                    return;
+                }
+
+                uploadQueue.style.display = 'block';
+                
+                let html = '';
+                
+                // Add reorder instructions if there are multiple files
+                if (selectedFiles.length > 1) {
+                    html += '<div class="reorder-instructions">💡 Drag files by the ⋮⋮ handle to reorder them</div>';
+                }
+                
+                html += selectedFiles.map((fileObj, index) => {
+                    const fileSizeKB = Math.round(fileObj.file.size / 1024);
+                    return `
+                        <div class="selected-file-item" 
+                             data-file-id="${fileObj.id}" 
+                             data-index="${index}"
+                             draggable="false">
+                            <div class="drag-handle" title="Drag to reorder">⋮⋮</div>
+                            <div class="selected-file-info">
+                                <div class="selected-file-name">
+                                    <span style="color: #6c757d; font-size: 12px; margin-right: 8px;">#${index + 1}</span>
+                                    ${fileObj.file.name}
+                                </div>
+                                <div class="selected-file-details">${fileSizeKB} KB</div>
+                                <div class="metadata-editor">
+                                    <label>Title:</label>
+                                    <input type="text" value="${fileObj.metadata.title}" 
+                                           onchange="updateFileMetadata(${fileObj.id}, 'title', this.value)"
+                                           placeholder="Track title">
+                                    <label>Artist:</label>
+                                    <input type="text" value="${fileObj.metadata.artist}" 
+                                           onchange="updateFileMetadata(${fileObj.id}, 'artist', this.value)"
+                                           placeholder="Artist name">
+                                    <label>Album:</label>
+                                    <input type="text" value="${fileObj.metadata.album}" 
+                                           onchange="updateFileMetadata(${fileObj.id}, 'album', this.value)"
+                                           placeholder="Album name">
+                                </div>
+                            </div>
+                            <div class="selected-file-actions">
+                                <button class="remove-file-btn" onclick="removeSelectedFile(${fileObj.id})">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                // Add clear all button if there are multiple files
+                if (selectedFiles.length > 1) {
+                    html += `<button class="clear-all-btn" onclick="clearAllSelectedFiles()">Clear All Files</button>`;
+                }
+                
+                selectedFileList.innerHTML = html;
+                
+                // Setup drag and drop event listeners for reordering
+                setupFileReordering();
+            }
+
+            /**
+             * Update metadata for a selected file
+             */
+            function updateFileMetadata(fileId, field, value) {
+                const fileObj = selectedFiles.find(f => f.id === fileId);
+                if (fileObj) {
+                    fileObj.metadata[field] = value;
+                    console.log(`Updated ${field} for ${fileObj.file.name}: ${value}`);
+                }
+            }
+
+            /**
+             * Remove a file from the selected files list
+             */
+            function removeSelectedFile(fileId) {
+                selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+                
+                // Update the file input to reflect the change
+                const fileInput = document.getElementById('fileInput');
+                const dt = new DataTransfer();
+                selectedFiles.forEach(fileObj => {
+                    dt.items.add(fileObj.file);
+                });
+                fileInput.files = dt.files;
+                
+                updateSelectedFilesDisplay();
+                updateUploadButtonState();
+            }
+
+            /**
+             * Clear all selected files
+             */
+            function clearAllSelectedFiles() {
+                selectedFiles = [];
+                const fileInput = document.getElementById('fileInput');
+                fileInput.value = '';
+                updateSelectedFilesDisplay();
+                updateUploadButtonState();
+            }
+
+            /**
+             * Setup drag and drop reordering for selected files
+             */
+            function setupFileReordering() {
+                const fileItems = document.querySelectorAll('.selected-file-item');
+                
+                fileItems.forEach(item => {
+                    const dragHandle = item.querySelector('.drag-handle');
+                    
+                    // Make drag handle enable dragging
+                    dragHandle.addEventListener('mousedown', function(e) {
+                        item.draggable = true;
+                    });
+                    
+                    // Disable dragging when mouse leaves drag handle
+                    dragHandle.addEventListener('mouseleave', function(e) {
+                        if (!item.classList.contains('dragging')) {
+                            item.draggable = false;
+                        }
+                    });
+                    
+                    // Prevent dragging when clicking on other elements
+                    item.addEventListener('mousedown', function(e) {
+                        if (!e.target.closest('.drag-handle')) {
+                            item.draggable = false;
+                        }
+                    });
+                    
+                    item.addEventListener('dragstart', function(e) {
+                        if (!item.draggable) {
+                            e.preventDefault();
+                            return false;
+                        }
+                        
+                        this.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                        e.dataTransfer.setData('text/html', this.outerHTML);
+                        e.dataTransfer.setData('text/plain', this.dataset.fileId);
+                    });
+
+                    item.addEventListener('dragend', function(e) {
+                        this.classList.remove('dragging');
+                        // Remove all drag-over classes
+                        document.querySelectorAll('.selected-file-item').forEach(el => {
+                            el.classList.remove('drag-over');
+                        });
+                    });
+
+                    item.addEventListener('dragover', function(e) {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'move';
+                        
+                        // Remove drag-over from all items
+                        document.querySelectorAll('.selected-file-item').forEach(el => {
+                            el.classList.remove('drag-over');
+                        });
+                        
+                        // Add drag-over to current item if it's not the dragging item
+                        if (!this.classList.contains('dragging')) {
+                            this.classList.add('drag-over');
+                        }
+                    });
+
+                    item.addEventListener('dragenter', function(e) {
+                        e.preventDefault();
+                    });
+
+                    item.addEventListener('dragleave', function(e) {
+                        // Only remove drag-over if we're actually leaving the item
+                        if (!this.contains(e.relatedTarget)) {
+                            this.classList.remove('drag-over');
+                        }
+                    });
+
+                    item.addEventListener('drop', function(e) {
+                        e.preventDefault();
+                        
+                        const draggedFileId = e.dataTransfer.getData('text/plain');
+                        const targetFileId = this.dataset.fileId;
+                        
+                        if (draggedFileId !== targetFileId) {
+                            reorderFiles(draggedFileId, targetFileId);
+                        }
+                        
+                        // Clean up classes
+                        document.querySelectorAll('.selected-file-item').forEach(el => {
+                            el.classList.remove('dragging', 'drag-over');
+                        });
+                    });
+                });
+            }
+
+            /**
+             * Reorder files in the selectedFiles array
+             */
+            function reorderFiles(draggedFileId, targetFileId) {
+                const draggedIndex = selectedFiles.findIndex(f => f.id == draggedFileId);
+                const targetIndex = selectedFiles.findIndex(f => f.id == targetFileId);
+                
+                if (draggedIndex === -1 || targetIndex === -1) return;
+                
+                // Remove the dragged item
+                const draggedFile = selectedFiles.splice(draggedIndex, 1)[0];
+                
+                // Insert it at the target position
+                selectedFiles.splice(targetIndex, 0, draggedFile);
+                
+                // Update the file input to reflect the new order
+                updateFileInputOrder();
+                
+                // Refresh the display
+                updateSelectedFilesDisplay();
+                
+                console.log('Files reordered:', selectedFiles.map(f => f.file.name));
+            }
+
+            /**
+             * Update the file input to match the selectedFiles order
+             */
+            function updateFileInputOrder() {
+                const fileInput = document.getElementById('fileInput');
+                const dt = new DataTransfer();
+                selectedFiles.forEach(fileObj => {
+                    dt.items.add(fileObj.file);
+                });
+                fileInput.files = dt.files;
+            }
+
+            /**
              * Update upload button state based on file selection
              */
             function updateUploadButtonState() {
-                const fileInput = document.getElementById('fileInput');
                 const uploadBtn = document.getElementById('uploadBtn');
-
-                uploadBtn.disabled = !fileInput.files.length || !connected;
+                uploadBtn.disabled = selectedFiles.length === 0 || !connected;
             }
 
             /**
