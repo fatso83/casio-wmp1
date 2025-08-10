@@ -56,7 +56,7 @@ Access it at [wmp1.simenf.com](https://wmp1.simenf.com) hosted with cloudflare p
 
 # 🖥️ Original Command-Line Software
 
-For those who prefer the original command-line interface or need to use older systems, the original C++ implementation is still available below. Something in the legacy libusb code seems to be broken on newer Linux distros (see #3), so this has not been working for some time. Which is why the port to WebUSB was really welcome!
+For those who prefer the original command-line interface or need to use older systems, the original C++ implementation is still available below. Something in the legacy libusb code seems to be broken on newer Linux distros (see [#3](https://github.com/fatso83/casio-wmp1/issues/3)), so this has not been working for some time. Which is why the port to WebUSB was really welcome!
 
 ### Legacy Command-Line Interface
 
@@ -73,7 +73,7 @@ For a bit of history and usage, see the old <a
 href="original_documentation/README">README</a>
 
 ### Installing the Legacy Software
-See [./src/README.md](./src/README.md).
+See [./libusb-version/README.md](./libusb-version/README.md).
 
 ## Additional Info (Legacy Software)
 I have kept an old copy of the original software for Windows 98 <a
@@ -90,7 +90,7 @@ href="./assets/wmp1_org_firmware.dat">here</a>.
 ## Main contributors
 - Florian Schmidt (development)
 - Carl-Erik (minor bug fixes, research, documentation and code archeology)
-- Martin Kiewitz (wrote the original REXX code for OS/2)
+- Martin Kiewitz (wrote the [original REXX code for OS/2](os2-version/MMPORT/))
 - SimenF (WebUSB port)
 
 ## Changelog:
