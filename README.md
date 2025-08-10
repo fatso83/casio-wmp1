@@ -1,12 +1,11 @@
 Casio WMP 1 WebUSB Manager 🚀
 ================================
-[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/fatso83)
 
 > Modern web-based file management for the classic Casio WMP-1 watch using WebUSB
 
 <img src="./assets/b1b72ibsxkfugfeuxcpl.jpg" alt="white background casio wmp 1" width="400px"/>
 
-**NEW**: This project has been ported to WebUSB! 🎉 You can now manage your Casio WMP-1 watch directly from your web browser without installing any software or drivers.
+**NEW (2025)**: This project has been ported to WebUSB, thanks to @simenf! 🎉 You can now manage your Casio WMP-1 watch directly from your web browser without installing any software or drivers.
 
 The Casio WMP 1 was the world's first MP3 watch when it came out in 2000. You can read more
 about it [on the 50 year anniversery page for Casio](https://web.archive.org/web/20250410093512/https://www.casio.com/europe/watches/50th/Heritage/2000s/).
@@ -23,7 +22,7 @@ The easiest way to use this software is through the new WebUSB-powered web appli
 
 ### How to Use the WebUSB App
 
-1. **Open the web application**: Open `casio-wmp-manager.html` in a modern web browser (Chrome, Edge, or Opera - WebUSB is not supported in Firefox or Safari)
+1. **Open the web application**: Spin up a local web server (see below) and access `/casio-wmp-manager.html` in a modern web browser (Chrome, Edge, or Opera - WebUSB is not supported in Firefox or Safari)
 
 2. **Connect your watch**: 
    - Connect your Casio WMP-1 to your computer via USB
@@ -44,25 +43,20 @@ The easiest way to use this software is through the new WebUSB-powered web appli
 
 ### Running the Web App
 
-Webusb only works over https or from localhost:
+Webusb only works over https or from localhost, which means your options are spinning it up yourself or try the hosted version
 
 # Option 1: Serve locally (recommended for security)
-# Using Python 3
+```
 python -m http.server 8000
+```
 Then open http://localhost:8000/casio-wmp-manager.html
 
-# Option 2:
+# Option 2: external hosting
 Access it at [wmp1.simenf.com](https://wmp1.simenf.com) hosted with cloudflare pages.
 
-Option 3: 
-Host it yourself somewhere.
-```
+# 🖥️ Original Command-Line Software
 
----
-
-## 🖥️ Original Command-Line Software
-
-For those who prefer the original command-line interface or need to use older systems, the original C++ implementation is still available below.
+For those who prefer the original command-line interface or need to use older systems, the original C++ implementation is still available below. Something in the legacy libusb code seems to be broken on newer Linux distros (see #3), so this has not been working for some time. Which is why the port to WebUSB was really welcome!
 
 ### Legacy Command-Line Interface
 
@@ -97,6 +91,7 @@ href="./assets/wmp1_org_firmware.dat">here</a>.
 - Florian Schmidt (development)
 - Carl-Erik (minor bug fixes, research, documentation and code archeology)
 - Martin Kiewitz (wrote the original REXX code for OS/2)
+- SimenF (WebUSB port)
 
 ## Changelog:
 
