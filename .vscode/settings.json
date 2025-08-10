@@ -1,0 +1,6 @@
+{
+    "html.autoClosingTags": false,
+    "files.associations": {
+        "map": "cpp"
+    }
+}
