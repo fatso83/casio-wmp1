@@ -106,8 +106,7 @@ Complete rewrite using WebUSB technology:
 
 ### June 14 2018 Added original REXX code
 Thought it would be fun to find and add the original code for OS/2 that I sent Florian originally.
-I found it on the [OS/2 archive "Hobbes"](http://hobbes.nmsu.edu/h-viewer.php?dir=/pub/os2/apps/mmedia/music&file=mmportv1.zip).
-The original download site is [non-functional](http://en.ecomstation.ru/personal/kiewitzsoft/app-mmport.php) for this download.
+I found it on the [Hobbes OS/2 archive](https://hobbesarchive.com/?detail=/pub/os2/util/handheld/MMPORT_1-0.zip). The link now points to a mirror, after [the original Hobbes archive was decomissioned after 34 years](https://arstechnica.com/gadgets/2024/01/after-32-years-one-of-the-nets-oldest-software-archives-is-shutting-down/)).
 
 ### June 24 2013 Added INSTALL note
 Added a small howto on how to build on current systems (OS X and Linux)
