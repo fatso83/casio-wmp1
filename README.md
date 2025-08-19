@@ -70,7 +70,7 @@ The interface is a clunky text based interface, but it works reasonably well -
 some would say better than the original Windows software, although that wouldn't say much :)
 
 For a bit of history and usage, see the old <a
-href="original_documentation/README">README</a>
+href="libusb-version/original_documentation/README">README</a>
 
 ### Installing the Legacy Software
 See [./libusb-version/README.md](./libusb-version/README.md).
