@@ -8,7 +8,7 @@ Casio WMP 1 WebUSB Manager 🚀
 **NEW (2025)**: This project has been ported to WebUSB, thanks to @simenf! 🎉 You can now manage your Casio WMP-1 watch directly from your web browser without installing any software or drivers. Use the Discussions tab here in GitHub if you wonder about something!
 
 The Casio WMP 1 was the world's first MP3 watch when it came out in 2000. You can read more
-about it [on the 50 year anniversery page for Casio](https://web.archive.org/web/20250410093512/https://www.casio.com/europe/watches/50th/Heritage/2000s/).
+about it [on the 50 year anniversery page for Casio](https://www.casio.com/europe/watches/50th/Heritage/2000s/).
 
 ## 🌐 WebUSB Web Application
 
